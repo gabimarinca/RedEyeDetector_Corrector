@@ -48,7 +48,6 @@ Mat threshold_inverse_binary(Mat gray, int thresh_value);  //binarizeaza in func
 labels BFS_labeling(Mat source);
 
 Mat color_labels(labels labels_str);
-
 vector<Rect> detectEyes(Mat source); //functia main de detectie ochi
 
 Mat displayEyeZones(Mat img, vector<Rect> eyes);

@@ -196,6 +196,7 @@ labels BFS_labeling(Mat source) {
     return {labelsM, no_labels};
 }
 
+
 vector<Rect> detectEyes(Mat source) {
 
     Mat gray = bgr_2_grayscale(source);
@@ -224,6 +225,9 @@ vector<Rect> detectEyes(Mat source) {
 
     vector<Rect> eyes;
 
+    image_channels_bgr bgr_channels = break_channels(source);
+    image_channels_hsv hsv_channels = bgr_2_hsv(bgr_channels);
+
     for (int label = 1; label <= no_labels; label++) {
         int minX = invBinary.cols, minY = invBinary.rows;
         int maxX = 0, maxY = 0;
@@ -250,10 +254,24 @@ vector<Rect> detectEyes(Mat source) {
         int height = maxY - minY;
         float aspectRatio = (float)width / height;
 
-        if (aspectRatio >= 1 && aspectRatio <= 3 &&
-            no_pixels > 500 && no_pixels < 1500) {
+        if (aspectRatio >= 1 && aspectRatio <= 5 && no_pixels > 50 && no_pixels < 10000) {
+            bool hasRed = false;
             Rect eyeRect(minX, minY, width, height);
-            eyes.push_back(eyeRect);
+            for (int y = minY; y < maxY && !hasRed; y++) {
+                for (int x = minX; x < maxX && !hasRed; x++) {
+                    float h = hsv_channels.H.at<float>(y, x);
+                    float s = hsv_channels.S.at<float>(y, x);
+                    float v = hsv_channels.V.at<float>(y, x);
+
+                    if (((h >= 0 && h <= 20) || (h >= 340 && h <= 360)) &&
+                        s > 0.6 && v > 0.65) {
+                        hasRed = true;
+                        }
+                }
+            }
+            if (hasRed) {
+                eyes.push_back(eyeRect);
+            }
         }
     }
     return eyes;
@@ -359,12 +377,12 @@ image_channels_bgr fixRedEyes(image_channels_bgr bgr_channels, image_channels_hs
         Mat eyeS = hsv_channels.S(eye);
         Mat eyeV = hsv_channels.V(eye);
 
-        Mat maskH = ((eyeH >= 0) & (eyeH <= 15)) | ((eyeH >= 345) & (eyeH <= 360));
-        Mat maskS = (eyeS > 0.7);
-        Mat maskV = (eyeV > 0.5);
+        Mat maskH = ((eyeH >= 0) & (eyeH <= 50)) | ((eyeH >= 310) & (eyeH <= 360));
+        Mat maskS = (eyeS > 0.5);
+        Mat maskV = (eyeV > 0.4);
         Mat red_eye_mask = maskH & maskS & maskV;
 
-        imshow("Red Eye Portion" + to_string(i), red_eye_mask);
+       // imshow("Red Eye Portion" + to_string(i), red_eye_mask);
 
         Mat eyeB = bgr_channels.B(eye);
         Mat eyeG = bgr_channels.G(eye);
