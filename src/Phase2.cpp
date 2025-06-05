@@ -254,27 +254,45 @@ vector<Rect> detectEyes(Mat source) {
         int height = maxY - minY;
         float aspectRatio = (float)width / height;
 
-        if (aspectRatio >= 1 && aspectRatio <= 5 && no_pixels > 50 && no_pixels < 10000) {
-            bool hasRed = false;
+        if (aspectRatio >= 0.8 && aspectRatio <= 4 && no_pixels > 10 && no_pixels < 10000) {
+            int redPixelCount = 0;
+            int totalCount = 0;
+
             Rect eyeRect(minX, minY, width, height);
-            for (int y = minY; y < maxY && !hasRed; y++) {
-                for (int x = minX; x < maxX && !hasRed; x++) {
+            for (int y = minY; y < maxY; y++) {
+                for (int x = minX; x < maxX; x++) {
                     float h = hsv_channels.H.at<float>(y, x);
                     float s = hsv_channels.S.at<float>(y, x);
                     float v = hsv_channels.V.at<float>(y, x);
-
-                    if (((h >= 0 && h <= 20) || (h >= 340 && h <= 360)) &&
-                        s > 0.6 && v > 0.65) {
-                        hasRed = true;
+                    totalCount++;
+                    if (((h >= 0 && h <= 25) || (h >= 335 && h <= 360)) &&
+                        s > 0.6 && v > 0.6) {
+                        redPixelCount++;
                         }
                 }
             }
-            if (hasRed) {
+            float redRatio = (float)redPixelCount / totalCount;
+            if (redRatio > 0.02) {
                 eyes.push_back(eyeRect);
             }
         }
     }
-    return eyes;
+
+    vector<Rect> parallelEyes;
+    for (int i = 0; i < eyes.size(); i++) {
+        for (int j = i + 1; j < eyes.size(); j++) {
+            int centerY1 = eyes[i].y + eyes[i].height / 2;
+            int centerY2 = eyes[j].y + eyes[j].height / 2;
+            if (abs(centerY1 - centerY2) < 20) {
+                parallelEyes.push_back(eyes[i]);
+                parallelEyes.push_back(eyes[j]);
+                break;
+            }
+        }
+        if (!parallelEyes.empty()) break;
+    }
+    return parallelEyes.empty() ? eyes : parallelEyes;
+
 }
 
 
@@ -377,9 +395,9 @@ image_channels_bgr fixRedEyes(image_channels_bgr bgr_channels, image_channels_hs
         Mat eyeS = hsv_channels.S(eye);
         Mat eyeV = hsv_channels.V(eye);
 
-        Mat maskH = ((eyeH >= 0) & (eyeH <= 50)) | ((eyeH >= 310) & (eyeH <= 360));
+        Mat maskH = ((eyeH >= 0) & (eyeH <= 35)) | ((eyeH >= 325) & (eyeH <= 360));
         Mat maskS = (eyeS > 0.5);
-        Mat maskV = (eyeV > 0.4);
+        Mat maskV = (eyeV > 0.5);
         Mat red_eye_mask = maskH & maskS & maskV;
 
        // imshow("Red Eye Portion" + to_string(i), red_eye_mask);
@@ -399,3 +417,14 @@ image_channels_bgr fixRedEyes(image_channels_bgr bgr_channels, image_channels_hs
     }
     return bgr_channels;
 }
+
+
+//this is for comparing
+vector<Rect> detectEyesWithHaarCascade(Mat image) {
+    CascadeClassifier eyeCascade("C:\\Users\\Gabi\\Downloads\\opencv\\sources\\data\\haarcascades\\haarcascade_eye.xml");
+    vector<Rect> eyes;
+    eyeCascade.detectMultiScale(image, eyes, 1.2, 8,0);
+
+    return eyes;
+}
+

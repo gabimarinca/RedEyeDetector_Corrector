@@ -6,7 +6,7 @@ using namespace std;
 using namespace cv;
 
 int main() {
-    Mat source = imread("D:\\AA-UTCN\\An III\\Sem II\\PI\\Project\\Phase2 - Implementation\\images\\face7.bmp",
+    Mat source = imread("D:\\AA-UTCN\\An III\\Sem II\\PI\\Project\\Phase2 - Implementation\\images\\face1.bmp",
                         IMREAD_COLOR);
     // original image
     imshow("Original", source);
@@ -32,6 +32,11 @@ int main() {
     }
 
     imshow("Fixed Image", result);
+
+    Mat detectedEyes2 = source.clone();
+    vector<Rect> eyes2 = detectEyesWithHaarCascade(result);  //advanced detection
+    displayEyeZones(detectedEyes2, eyes2);
+    imshow("Detected eyes with HaarCascade", detectedEyes2);
 
     waitKey(0);
 
